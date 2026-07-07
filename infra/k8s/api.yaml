@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskflow-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: taskflow-api
+  template:
+    metadata:
+      labels:
+        app: taskflow-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "taskflow-api"
+        vault.hashicorp.com/agent-inject-secret-db: "secret/data/taskflow/db"
+        vault.hashicorp.com/agent-inject-template-db: |
+          {{- with secret "secret/data/taskflow/db" -}}
+          export DB_USER="{{ .Data.data.username }}"
+          export DB_PASSWORD="{{ .Data.data.password }}"
+          {{- end -}}
+    spec:
+      containers:
+        - name: api
+          image: taskflow-api:local
+          imagePullPolicy: Never
+          env:
+            - name: DB_HOST
+              value: postgres
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+            - name: KAFKA_BROKER
+              value: kafka.taskflow.svc.cluster.local:9092
+            - name: REDIS_HOST
+              value: redis-master.taskflow.svc.cluster.local
+            - name: REDIS_PASSWORD
+              value: taskflow123
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskflow-api
+spec:
+  selector:
+    app: taskflow-api
+  ports:
+    - port: 3000

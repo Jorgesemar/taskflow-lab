@@ -1,0 +1,28 @@
+- hosts: servidores
+  become: yes
+  tasks:
+    - name: Actualizar indice de paquetes
+      apt:
+        update_cache: yes
+
+    - name: Instalar nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Desplegar pagina de estado personalizada
+      copy:
+        content: |
+          <html>
+            <body>
+              <h1>TaskFlow - servidor configurado por Ansible</h1>
+              <p>Este contenido nunca se construyo en la imagen Docker.</p>
+            </body>
+          </html>
+        dest: /var/www/html/index.html
+
+    - name: Asegurar que nginx esta arrancado
+      service:
+        name: nginx
+        state: started
+        enabled: yes
