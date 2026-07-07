@@ -1,0 +1,37 @@
+name: CI TaskFlow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar dependencias
+        working-directory: ./app
+        run: npm install
+
+      - name: Ejecutar tests
+        working-directory: ./app
+        run: npm test
+
+      - name: Login en GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar imagen
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/taskflow-api:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/taskflow-api:latest
