@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/TU-USUARIO/taskflow-lab.git
+    repoURL: https://github.com/Jorgesemar/taskflow-lab.git
     targetRevision: main
     path: infra/k8s
   destination:
